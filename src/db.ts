@@ -1,11 +1,12 @@
 import mysql from "mysql2/promise";
+import dotenv from "dotenv";
+dotenv.config();
 
-// Configuración de la conexión a la BD remota por IP privada
 const pool = mysql.createPool({
-  host: "172.17.0.4",        // IP privada de tu VM BD
-  user: "adminmysqlecommerce", // usuario MySQL que creaste
-  password: "password",  // reemplaza por tu contraseña real
-  database: "delivery_db",     // nombre de tu base de datos
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
