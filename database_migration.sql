@@ -3,11 +3,8 @@
 -- Elimina y recrea toda la estructura
 -- ========================================
 
--- Eliminar base de datos si existe
-DROP DATABASE IF EXISTS delivery_db;
-
 -- Crear base de datos
-CREATE DATABASE delivery_db;
+CREATE DATABASE IF NOT EXISTS delivery_db;
 USE delivery_db;
 
 -- ========================================

@@ -6,7 +6,7 @@ import productosRoutes from "./routes/productos";
 import carritoRoutes from "./routes/carrito";
 import pedidosRoutes from "./routes/pedidos";
 import dashboardRoutes from "./routes/dashboard";
-import { initializeDatabase, checkDatabaseExists } from "./database/init";
+import { initializeDatabase, checkDatabaseExists, dropDatabase } from "./database/init";
 import { getConfig, getCorsConfig, displayConfig } from "./config/environments";
 
 const app: Application = express();
@@ -35,12 +35,13 @@ async function startServer() {
     // Verificar si la base de datos existe
     const dbExists = await checkDatabaseExists();
     
-    if (!dbExists) {
-      console.log("📊 Base de datos no encontrada, inicializando...");
-      await initializeDatabase();
-    } else {
-      console.log("✅ Base de datos ya existe, continuando...");
+    if (dbExists) {
+      console.log("🔄 Base de datos encontrada, reinicializando...");
+      await dropDatabase();
     }
+    
+    console.log("📊 Inicializando base de datos...");
+    await initializeDatabase();
 
     // Iniciar servidor
     app.listen(config.PORT, () => {

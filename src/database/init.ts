@@ -1,7 +1,11 @@
 import mysql from "mysql2/promise";
 import fs from "fs";
 import path from "path";
+import { exec } from "child_process";
+import { promisify } from "util";
 import { getDatabaseConfig } from "../config/environments";
+
+const execAsync = promisify(exec);
 
 const dbConfig = getDatabaseConfig();
 const DB_HOST = dbConfig.host;
@@ -26,45 +30,56 @@ export async function initializeDatabase(): Promise<void> {
     const migrationPath = path.join(__dirname, "../../database_migration.sql");
     const migrationSQL = fs.readFileSync(migrationPath, "utf8");
 
-    // Procesar el script SQL para manejar DELIMITER correctamente
-    let processedSQL = migrationSQL;
+    // Ejecutar el script usando mysql CLI
+    console.log("📝 Ejecutando script de migración...");
     
-    // Reemplazar DELIMITER // con ; para que funcione con mysql2
-    processedSQL = processedSQL.replace(/DELIMITER \/\/\s*/g, '');
-    processedSQL = processedSQL.replace(/\/\/\s*DELIMITER\s*;/g, ';');
-    
-    // Dividir el script en comandos individuales
-    const commands = processedSQL
-      .split(";")
-      .map(cmd => cmd.trim())
-      .filter(cmd => cmd.length > 0 && !cmd.startsWith("--"));
-
-    console.log(`📝 Ejecutando ${commands.length} comandos SQL...`);
-
-    // Ejecutar cada comando
-    for (const command of commands) {
-      if (command.trim()) {
-        try {
-          await connection.execute(command);
-          console.log(`✅ Comando ejecutado: ${command.substring(0, 50)}...`);
-        } catch (error: any) {
-          // Ignorar errores de "ya existe" para tablas, vistas, etc.
-          if (!error.message.includes("already exists") && 
-              !error.message.includes("Duplicate entry") &&
-              !error.message.includes("Table") && 
-              !error.message.includes("View") &&
-              !error.message.includes("Procedure") &&
-              !error.message.includes("Trigger")) {
-            console.warn(`⚠️  Advertencia: ${error.message}`);
-          }
-        }
+    try {
+      const migrationPath = path.join(__dirname, "../../database_migration.sql");
+      const command = `mysql -h ${DB_HOST} -u ${DB_USER} -p${DB_PASSWORD} < "${migrationPath}"`;
+      
+      const { stdout, stderr } = await execAsync(command);
+      
+      if (stderr && !stderr.includes("Warning")) {
+        console.error("❌ Error ejecutando script de migración:", stderr);
+        throw new Error(stderr);
       }
+      
+      console.log("✅ Script de migración ejecutado correctamente");
+    } catch (error: any) {
+      console.error("❌ Error ejecutando script de migración:", error.message);
+      throw error;
     }
 
     console.log("✅ Base de datos inicializada correctamente");
     
   } catch (error: any) {
     console.error("❌ Error inicializando base de datos:", error.message);
+    throw error;
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+}
+
+// Función para eliminar la base de datos
+export async function dropDatabase(): Promise<void> {
+  let connection: mysql.Connection | null = null;
+  
+  try {
+    console.log("🗑️  Eliminando base de datos existente...");
+    
+    connection = await mysql.createConnection({
+      host: DB_HOST,
+      user: DB_USER,
+      password: DB_PASSWORD,
+    });
+
+    await connection.execute(`DROP DATABASE IF EXISTS ${DB_NAME}`);
+    console.log("✅ Base de datos eliminada correctamente");
+    
+  } catch (error: any) {
+    console.error("❌ Error eliminando base de datos:", error.message);
     throw error;
   } finally {
     if (connection) {
