@@ -1,12 +1,13 @@
 import mysql from "mysql2/promise";
-import dotenv from "dotenv";
-dotenv.config();
+import { getDatabaseConfig } from "./config/environments";
+
+const dbConfig = getDatabaseConfig();
 
 const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  host: dbConfig.host,
+  user: dbConfig.user,
+  password: dbConfig.password,
+  database: dbConfig.database,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0

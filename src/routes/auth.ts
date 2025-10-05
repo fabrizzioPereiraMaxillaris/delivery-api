@@ -5,11 +5,14 @@ const router = Router();
 
 // REGISTER
 router.post("/register", async (req: Request, res: Response) => {
-  const { nombre, email, password } = req.body;
+  const { nombre, email, password, rol_id } = req.body;
   try {
+    // Si no se especifica rol_id, usar 2 (usuario normal) por defecto
+    const userRoleId = rol_id || 2;
+    
     const [result] = await pool.query(
-      "INSERT INTO usuarios (nombre, email, password, rol_id) VALUES (?, ?, ?, 2)",
-      [nombre, email, password]
+      "INSERT INTO usuarios (nombre, email, password, rol_id) VALUES (?, ?, ?, ?)",
+      [nombre, email, password, userRoleId]
     );
     res.json({ message: "Usuario registrado", result });
   } catch (error: any) {
